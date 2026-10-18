@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog'
 import { movieMetadata } from '@/lib/movies'
 import { MovieCard, movieFrameClassName } from '@/components/movie-card'
@@ -77,17 +78,12 @@ function Home() {
         </div>
         {movie && (
           <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-            <DialogContent
-              className="max-h-[calc(100svh-48px)] w-120 max-w-[calc(100%-32px)] gap-5 overflow-y-auto overscroll-contain rounded-[24px] border p-7 pt-11 sm:max-w-[calc(100%-32px)]"
-              finalFocus={detailsButton}
-            >
-              <DialogTitle className="pe-3 text-[28px] leading-[1.2] tracking-[-0.02em]">
-                {movie.title}
-              </DialogTitle>
+            <DialogContent finalFocus={detailsButton}>
+              <DialogTitle>{movie.title}</DialogTitle>
               <p className="text-sm text-muted-foreground">
                 {movieMetadata(movie).join(' / ')}
               </p>
-              <DialogDescription className="text-base leading-[1.6] text-pretty text-foreground">
+              <DialogDescription>
                 {movie.synopsis || 'No synopsis available.'}
               </DialogDescription>
               <a
@@ -102,26 +98,36 @@ function Home() {
           </Dialog>
         )}
       </main>
-      <footer
-        aria-label="Credits"
-        className="mx-auto flex max-w-160 flex-col items-center px-5 pb-5 text-center text-xs leading-relaxed text-muted-foreground"
-      >
-        <a
-          href="https://www.themoviedb.org"
-          className="flex min-h-11 items-center"
-        >
-          <img
-            src={tmdbLogo}
-            alt="TMDB"
-            width={64}
-            height={9}
-            className="h-auto w-16"
-          />
-        </a>
-        <p>
-          This application uses TMDB and the TMDB APIs but is not endorsed,
-          certified, or otherwise approved by TMDB.
-        </p>
+      <footer aria-label="Credits" className="px-5 pb-5 text-center">
+        <Dialog>
+          <DialogTrigger className="min-h-11 rounded-sm px-2 text-[13px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-4 hover:text-foreground">
+            Film data from TMDB
+          </DialogTrigger>
+          <DialogContent>
+            <DialogTitle>Film data</DialogTitle>
+            <DialogDescription>
+              Movie information and artwork are supplied by{' '}
+              <a href="https://www.themoviedb.org">The Movie Database (TMDB)</a>
+              .
+            </DialogDescription>
+            <a
+              href="https://www.themoviedb.org"
+              className="flex min-h-11 w-fit items-center rounded-sm"
+            >
+              <img
+                src={tmdbLogo}
+                alt="TMDB"
+                width={96}
+                height={13}
+                className="h-auto w-24"
+              />
+            </a>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              This application uses TMDB and the TMDB APIs but is not endorsed,
+              certified, or otherwise approved by TMDB.
+            </p>
+          </DialogContent>
+        </Dialog>
       </footer>
     </div>
   )
