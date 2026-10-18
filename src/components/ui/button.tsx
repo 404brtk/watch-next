@@ -7,7 +7,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        surface: 'surface-button',
+        surface:
+          'rounded-full bg-(--control-fill) text-foreground shadow-(--control-shadow) transition-none focus-visible:border-transparent focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-5 focus-visible:outline-ring hover:enabled:not-aria-disabled:not-active:bg-(--control-hover) active:enabled:not-aria-disabled:bg-(--control-pressed) motion-safe:not-focus-visible:transition-[scale,background-color] motion-safe:not-focus-visible:duration-150 motion-safe:not-focus-visible:ease-out motion-safe:active:enabled:not-aria-disabled:not-focus-visible:scale-[0.96] aria-disabled:cursor-wait forced-colors:border-[ButtonText] forced-colors:focus-visible:outline-[Highlight]',
         default: 'bg-primary text-primary-foreground hover:bg-primary/80',
         outline:
           'border-border bg-input/30 hover:bg-input/50 hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground',
