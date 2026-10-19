@@ -93,6 +93,8 @@
   html {
     @apply font-sans antialiased;
     color-scheme: dark;
+    scrollbar-color: var(--navy-500) var(--background);
+    scrollbar-gutter: stable;
   }
   body {
     margin: 0;
@@ -119,7 +121,24 @@
   }
 }
 @media (forced-colors: active) {
+  * {
+    scrollbar-color: auto;
+  }
   :focus-visible {
     outline-color: Highlight;
+  }
+}
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--background);
+  }
+  ::-webkit-scrollbar-thumb {
+    border: 2px solid var(--background);
+    border-radius: 999px;
+    background: var(--navy-500);
   }
 }

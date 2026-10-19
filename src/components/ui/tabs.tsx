@@ -29,7 +29,7 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
     <TabsPrimitive.Tab
       data-slot="tabs-trigger"
       className={cn(
-        'inline-flex min-h-11 min-w-0 max-w-full flex-[1_1_auto] items-center justify-center gap-2 rounded-full border border-transparent px-4 py-2.5 text-base font-medium whitespace-normal text-muted-foreground outline-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring data-active:bg-(--glass-selected-fill) data-active:text-foreground data-active:shadow-(--control-shadow) motion-safe:transition-[background-color,color] motion-safe:duration-150 forced-colors:data-active:border-[Highlight]',
+        'inline-flex min-h-11 min-w-0 max-w-full flex-[1_1_auto] items-center justify-center gap-2 rounded-full border border-transparent px-3 py-2.5 text-base font-medium whitespace-normal text-muted-foreground outline-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring data-active:bg-(--glass-selected-fill) data-active:text-foreground data-active:shadow-(--control-shadow) motion-safe:transition-[background-color,color] motion-safe:duration-150 sm:px-4 forced-colors:data-active:border-[Highlight]',
         className,
       )}
       {...props}
