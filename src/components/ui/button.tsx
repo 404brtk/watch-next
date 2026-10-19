@@ -1,14 +1,17 @@
 import { Button as ButtonPrimitive } from '@base-ui/react/button'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'cn'
+import { ChevronDown } from 'lucide-react'
 
 const buttonVariants = cva(
   "group/button inline-flex shrink-0 items-center justify-center rounded-4xl border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
+        filter:
+          'min-h-11 max-w-full gap-3 rounded-full border-white/8 bg-(--glass-fill) px-4 py-2.5 text-sm text-foreground shadow-(--control-shadow) transition-none hover:enabled:bg-(--control-hover) focus-visible:border-transparent focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-3 focus-visible:outline-ring [@media(prefers-reduced-transparency:reduce)]:bg-card forced-colors:border-[ButtonText]',
         surface:
-          'rounded-full bg-(--control-fill) text-foreground shadow-(--control-shadow) transition-none focus-visible:border-transparent focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-5 focus-visible:outline-ring hover:enabled:not-aria-disabled:not-active:bg-(--control-hover) active:enabled:not-aria-disabled:bg-(--control-pressed) motion-safe:not-focus-visible:transition-[scale,background-color] motion-safe:not-focus-visible:duration-150 motion-safe:not-focus-visible:ease-out motion-safe:active:enabled:not-aria-disabled:not-focus-visible:scale-[0.96] aria-disabled:cursor-wait forced-colors:border-[ButtonText] forced-colors:focus-visible:outline-[Highlight]',
+          'rounded-full bg-(--control-fill) text-foreground shadow-(--control-shadow) transition-none focus-visible:border-transparent focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-5 focus-visible:outline-ring hover:enabled:not-aria-disabled:not-active:bg-(--control-hover) active:enabled:not-aria-disabled:bg-(--control-pressed) motion-safe:not-focus-visible:transition-[scale,background-color] motion-safe:not-focus-visible:duration-150 motion-safe:not-focus-visible:ease-out motion-safe:active:enabled:not-aria-disabled:not-focus-visible:scale-[0.96] aria-disabled:cursor-wait forced-colors:border-[ButtonText] forced-colors:focus-visible:outline-[Highlight]',
         default: 'bg-primary text-primary-foreground hover:bg-primary/80',
         outline:
           'border-border bg-input/30 hover:bg-input/50 hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground',
@@ -54,4 +57,13 @@ function Button({
   )
 }
 
-export { Button, buttonVariants }
+function ButtonChevron() {
+  return (
+    <ChevronDown
+      aria-hidden="true"
+      className="size-4 shrink-0 text-muted-foreground transition-none group-data-popup-open/dropdown:rotate-180 motion-safe:group-[:not(:focus-visible)]/dropdown:transition-transform motion-safe:duration-150 motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)]"
+    />
+  )
+}
+
+export { Button, ButtonChevron, buttonVariants }
