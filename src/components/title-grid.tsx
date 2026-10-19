@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react'
 import { Film } from 'lucide-react'
 import type { MediaTitle } from '@/lib/media'
+import { MediaRating } from '@/components/media-rating'
 
 function Poster({ title }: { title: MediaTitle }) {
   const [failed, setFailed] = useState(false)
@@ -14,7 +15,7 @@ function Poster({ title }: { title: MediaTitle }) {
           height={513}
           loading="lazy"
           onError={() => setFailed(true)}
-          className="size-full object-cover motion-safe:transition-transform motion-safe:duration-150 motion-safe:group-hover:scale-[1.025]"
+          className="size-full object-cover"
         />
       ) : (
         <div className="grid size-full place-items-center">
@@ -45,7 +46,7 @@ export function TitleGrid({
         <li key={title.id} className="min-w-0">
           <button
             type="button"
-            className="group block w-full rounded-[16px] text-start"
+            className="block w-full rounded-[16px] text-start"
             aria-label={`${choosing ? 'Find titles like' : 'Read about'} ${title.title}${title.year ? ` (${title.year})` : ''}`}
             onClick={(event) => onSelect(title, event.currentTarget)}
           >
@@ -53,11 +54,10 @@ export function TitleGrid({
             <Heading className="text-base leading-snug font-medium text-pretty wrap-break-word sm:text-lg">
               {title.title}
             </Heading>
-            {title.year && (
-              <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-                {title.year}
-              </p>
-            )}
+            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground tabular-nums">
+              {title.year && <span>{title.year}</span>}
+              <MediaRating rating={title.rating} />
+            </p>
           </button>
         </li>
       ))}

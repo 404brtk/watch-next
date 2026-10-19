@@ -36,6 +36,16 @@ export function Credits() {
             This application uses TMDB and the TMDB APIs but is not endorsed,
             certified, or otherwise approved by TMDB.
           </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Streaming availability is provided by{' '}
+            <a
+              href="https://www.justwatch.com"
+              className="underline underline-offset-4"
+            >
+              JustWatch
+            </a>
+            .
+          </p>
         </DialogContent>
       </Dialog>
     </footer>

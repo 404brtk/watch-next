@@ -1,6 +1,12 @@
 ﻿import { Schema } from 'effect'
 import { MediaPageSchema, MediaSchema } from './media'
 import type { MediaType } from './media'
+import {
+  DiscoveryOptionsSchema,
+  RegionsSchema,
+  WatchAvailabilitySchema,
+} from './discovery'
+import type { DiscoveryFilters } from './discovery'
 
 const ErrorSchema = Schema.Struct({ error: Schema.String })
 export class MediaRequestError extends Error {}
@@ -32,9 +38,49 @@ export function fetchRandomTitle(
   mediaType: MediaType,
   excludedIds: readonly number[],
   signal: AbortSignal,
+  filters: DiscoveryFilters,
+  country: string | null = null,
 ) {
   const query = new URLSearchParams({ exclude: excludedIds.join(',') })
+  if (country) query.set('country', country)
+  if (filters.genres.length) query.set('genres', filters.genres.join(','))
+  if (filters.providers.length)
+    query.set('providers', filters.providers.join(','))
+  if (filters.maxRuntime !== null)
+    query.set('maxRuntime', String(filters.maxRuntime))
+  if (filters.minRating) query.set('minRating', String(filters.minRating))
   return request(`/api/${mediaType}/pick?${query}`, MediaSchema, signal)
+}
+
+export function fetchDiscoveryOptions(
+  mediaType: MediaType,
+  signal: AbortSignal,
+  country: string | null,
+) {
+  const query = new URLSearchParams()
+  if (country) query.set('country', country)
+  return request(
+    `/api/${mediaType}/options?${query}`,
+    DiscoveryOptionsSchema,
+    signal,
+  )
+}
+
+export function fetchRegions(signal: AbortSignal) {
+  return request('/api/regions', RegionsSchema, signal)
+}
+
+export function fetchWatchAvailability(
+  mediaType: MediaType,
+  id: number,
+  country: string,
+  signal: AbortSignal,
+) {
+  return request(
+    `/api/${mediaType}/watch?${new URLSearchParams({ id: String(id), country })}`,
+    WatchAvailabilitySchema,
+    signal,
+  )
 }
 
 export function fetchTitles(

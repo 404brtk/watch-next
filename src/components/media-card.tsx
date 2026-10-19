@@ -4,6 +4,7 @@ import { Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { mediaMetadata } from '@/lib/media'
 import type { MediaTitle } from '@/lib/media'
+import { MediaRating } from '@/components/media-rating'
 
 export const mediaFrameClassName =
   'relative isolate flex aspect-[0.9] min-h-90 w-full items-end overflow-hidden rounded-[22px] bg-card shadow-(--card-shadow) sm:aspect-[1.85] sm:min-h-105 after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[inset_0_1px_0_var(--surface-highlight)] after:outline after:-outline-offset-1 after:outline-(--image-outline) forced-colors:border forced-colors:border-[ButtonText]'
@@ -48,6 +49,7 @@ export function MediaCard({
             {title.title}
           </h1>
           <p className="flex flex-wrap gap-x-3.5 gap-y-1 text-base text-muted-foreground tabular-nums sm:gap-x-5 sm:gap-y-1.5">
+            <MediaRating rating={title.rating} />
             {mediaMetadata(title).map((value) => (
               <span key={value}>{value}</span>
             ))}

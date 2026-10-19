@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchRandomTitle, MediaRequestError } from '@/lib/media-client'
 import type { MediaTitle, MediaType } from '@/lib/media'
+import { defaultDiscoveryFilters } from '@/lib/discovery'
+import type { DiscoveryFilters } from '@/lib/discovery'
 
 export function useMediaPicker(mediaType: MediaType, active: boolean) {
   const [title, setTitle] = useState<MediaTitle | null>(null)
@@ -11,7 +13,11 @@ export function useMediaPicker(mediaType: MediaType, active: boolean) {
   const request = useRef<AbortController | null>(null)
 
   const loadTitle = useCallback(
-    async (controller: AbortController) => {
+    async (
+      controller: AbortController,
+      filters: DiscoveryFilters,
+      country: string | null = null,
+    ) => {
       setPending(true)
       setError(null)
       try {
@@ -19,6 +25,8 @@ export function useMediaPicker(mediaType: MediaType, active: boolean) {
           mediaType,
           seen.current,
           controller.signal,
+          filters,
+          country,
         )
         if (controller.signal.aborted) return
         seen.current = [...seen.current, next.id].slice(-50)
@@ -38,11 +46,11 @@ export function useMediaPicker(mediaType: MediaType, active: boolean) {
     [mediaType],
   )
 
-  function pickAnother() {
+  function pickAnother(filters: DiscoveryFilters, country: string | null) {
     request.current?.abort()
     const controller = new AbortController()
     request.current = controller
-    void loadTitle(controller)
+    void loadTitle(controller, filters, country)
   }
 
   useEffect(() => {
@@ -50,7 +58,7 @@ export function useMediaPicker(mediaType: MediaType, active: boolean) {
     request.current?.abort()
     const controller = new AbortController()
     request.current = controller
-    void loadTitle(controller)
+    void loadTitle(controller, defaultDiscoveryFilters)
   }, [loadTitle, active])
 
   useEffect(() => () => request.current?.abort(), [])

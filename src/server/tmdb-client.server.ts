@@ -9,6 +9,7 @@ export class TmdbError extends Data.TaggedError('TmdbError')<{
     | 'rate-limit'
     | 'unavailable'
     | 'invalid-response'
+    | 'invalid-filters'
     | 'empty'
     | 'timeout'
 }> {}
@@ -18,6 +19,7 @@ const ConfigurationSchema = Schema.Struct({
     secure_base_url: Schema.String,
     backdrop_sizes: Schema.Array(Schema.String),
     poster_sizes: Schema.Array(Schema.String),
+    logo_sizes: Schema.Array(Schema.String),
   }),
 })
 
@@ -92,7 +94,8 @@ export function imageConfiguration(token: string) {
     if (
       images.secure_base_url !== 'https://image.tmdb.org/t/p/' ||
       !images.backdrop_sizes.includes('w1280') ||
-      !images.poster_sizes.includes('w342')
+      !images.poster_sizes.includes('w342') ||
+      !images.logo_sizes.includes('w92')
     ) {
       return yield* new TmdbError({ reason: 'invalid-response' })
     }

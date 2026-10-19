@@ -12,6 +12,9 @@ export const MediaSchema = Schema.Struct({
   backdrop: Schema.NullOr(Schema.String),
   poster: Schema.NullOr(Schema.String),
   synopsis: Schema.String,
+  rating: Schema.NullOr(
+    Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 10 })),
+  ),
 })
 
 export type MediaTitle = typeof MediaSchema.Type
@@ -42,6 +45,6 @@ export function mediaMetadata(title: MediaTitle) {
       : title.runtime
         ? formatRuntime(title.runtime)
         : null,
-    title.genres[0],
+    ...title.genres,
   ].filter((value): value is string => Boolean(value))
 }

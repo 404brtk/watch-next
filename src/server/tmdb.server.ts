@@ -1,6 +1,8 @@
 ﻿import { Effect, Schema } from 'effect'
 import type { MediaPage, MediaTitle, MediaType } from '../lib/media'
 import { imageConfiguration, request, TmdbError } from './tmdb-client.server'
+import { discoveryOptions } from './discovery-options.server'
+import type { DiscoveryFilters } from '../lib/discovery'
 
 const PositiveInteger = Schema.Number.check(
   Schema.isInt(),
@@ -18,6 +20,13 @@ const RawTitleSchema = Schema.Struct({
   backdrop_path: Schema.NullOr(Schema.String),
   poster_path: Schema.NullOr(Schema.String),
   overview: Schema.NullOr(Schema.String),
+  vote_average: Schema.Number.check(
+    Schema.isBetween({ minimum: 0, maximum: 10 }),
+  ),
+  vote_count: Schema.Number.check(
+    Schema.isInt(),
+    Schema.isGreaterThanOrEqualTo(0),
+  ),
 })
 const PageSchema = Schema.Struct({
   page: PositiveInteger,
@@ -62,6 +71,7 @@ function normalize(
         : null,
       poster: raw.poster_path ? `${imageBase}w342${raw.poster_path}` : null,
       synopsis: raw.overview?.trim() || '',
+      rating: raw.vote_count > 0 ? raw.vote_average : null,
     } satisfies MediaTitle
   })
 }
@@ -70,8 +80,22 @@ export function pickTitle(
   token: string,
   mediaType: MediaType,
   excludedIds: readonly number[],
+  selectedFilters: DiscoveryFilters,
+  country: string | null,
 ) {
   return Effect.gen(function* () {
+    if (selectedFilters.genres.length || selectedFilters.providers.length) {
+      const options = yield* discoveryOptions(token, mediaType, country)
+      if (
+        selectedFilters.genres.some(
+          (id) => !options.genres.some((genre) => genre.id === id),
+        ) ||
+        selectedFilters.providers.some(
+          (id) => !options.providers.some((provider) => provider.id === id),
+        )
+      )
+        return yield* new TmdbError({ reason: 'invalid-filters' })
+    }
     const today = new Date().toISOString().slice(0, 10)
     const filters = new URLSearchParams({
       language: 'en-US',
@@ -89,6 +113,18 @@ export function pickTitle(
             include_null_first_air_dates: 'false',
           }),
     })
+    if (selectedFilters.genres.length)
+      filters.set('with_genres', selectedFilters.genres.join('|'))
+    if (selectedFilters.minRating)
+      filters.set('vote_average.gte', String(selectedFilters.minRating))
+    if (selectedFilters.maxRuntime !== null)
+      filters.set('with_runtime.lte', String(selectedFilters.maxRuntime - 1))
+    if (selectedFilters.providers.length) {
+      if (!country) return yield* new TmdbError({ reason: 'invalid-filters' })
+      filters.set('watch_region', country)
+      filters.set('with_watch_providers', selectedFilters.providers.join('|'))
+      filters.set('with_watch_monetization_types', 'flatrate')
+    }
     const path = `/discover/${mediaType}?${filters}`
     const firstPage = yield* request(token, `${path}&page=1`, PageSchema)
     const pageCount = Math.min(firstPage.total_pages, 20)
