@@ -7,10 +7,12 @@ import { SimilarFinder } from '@/components/similar-finder'
 import { Credits } from '@/components/credits'
 import { RegionProvider } from '@/components/region-provider'
 import type { MediaType } from '@/lib/media'
+import { useLanguage } from '@/components/language-provider'
 
 export const Route = createFileRoute('/')({ component: Home })
 
 function Home() {
+  const { t } = useLanguage()
   const [mediaType, setMediaType] = useState<MediaType>('movie')
   const [mode, setMode] = useState('random')
   return (
@@ -25,14 +27,14 @@ function Home() {
             className="flex-1 gap-9 sm:gap-12"
           >
             <div className="mx-auto flex w-full max-w-240 flex-wrap items-center justify-center gap-x-8 gap-y-4 sm:justify-between">
-              <TabsList aria-label="Discover titles">
+              <TabsList aria-label={t.discover}>
                 <TabsTrigger value="random">
                   <Shuffle
                     className="size-4"
                     aria-hidden="true"
                     strokeWidth={1.75}
                   />
-                  Random
+                  {t.random}
                 </TabsTrigger>
                 <TabsTrigger value="similar">
                   <Search
@@ -40,11 +42,11 @@ function Home() {
                     aria-hidden="true"
                     strokeWidth={1.75}
                   />
-                  Find similar
+                  {t.similar}
                 </TabsTrigger>
               </TabsList>
               <fieldset className="flex max-w-full flex-wrap items-center gap-1 rounded-[26px] border border-white/8 bg-background/80 p-1 shadow-[inset_0_1px_0_var(--surface-edge)] backdrop-blur-xl [@media(prefers-reduced-transparency:reduce)]:bg-background [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none forced-colors:border-[ButtonText]">
-                <legend className="sr-only">What to watch</legend>
+                <legend className="sr-only">{t.whatToWatch}</legend>
                 {(['movie', 'tv'] as const).map((type) => (
                   <label key={type} className="relative cursor-pointer">
                     <input
@@ -56,7 +58,7 @@ function Home() {
                       className="peer sr-only"
                     />
                     <span className="flex min-h-11 items-center rounded-full px-4 text-sm font-medium text-muted-foreground peer-checked:bg-muted/70 peer-checked:text-foreground peer-checked:shadow-[inset_0_0_0_1px_var(--surface-edge),inset_0_1px_0_var(--surface-highlight)] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring hover:text-foreground forced-colors:peer-checked:outline">
-                      {type === 'movie' ? 'Movies' : 'TV shows'}
+                      {type === 'movie' ? t.movies : t.shows}
                     </span>
                   </label>
                 ))}

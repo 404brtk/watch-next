@@ -2,6 +2,7 @@
 import { Film } from 'lucide-react'
 import type { MediaTitle } from '@/lib/media'
 import { MediaRating } from '@/components/media-rating'
+import { useLanguage } from '@/components/language-provider'
 
 function Poster({ title }: { title: MediaTitle }) {
   const [failed, setFailed] = useState(false)
@@ -39,6 +40,7 @@ export function TitleGrid({
   choosing: boolean
   onSelect: (title: MediaTitle, button: HTMLButtonElement) => void
 }) {
+  const { t } = useLanguage()
   const Heading = choosing ? 'h3' : 'h2'
   return (
     <ul className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-4">
@@ -47,7 +49,7 @@ export function TitleGrid({
           <button
             type="button"
             className="block w-full rounded-[16px] text-start"
-            aria-label={`${choosing ? 'Find titles like' : 'Read about'} ${title.title}${title.year ? ` (${title.year})` : ''}`}
+            aria-label={`${choosing ? t.findLike(title.title) : t.readAbout(title.title)}${title.year ? ` (${title.year})` : ''}`}
             onClick={(event) => onSelect(title, event.currentTarget)}
           >
             <Poster title={title} />

@@ -3,6 +3,8 @@ import type { MediaPage, MediaTitle, MediaType } from '../lib/media'
 import { imageConfiguration, request, TmdbError } from './tmdb-client.server'
 import { discoveryOptions } from './discovery-options.server'
 import type { DiscoveryFilters } from '../lib/discovery'
+import { locales } from '../lib/i18n'
+import type { Language } from '../lib/i18n'
 
 const PositiveInteger = Schema.Number.check(
   Schema.isInt(),
@@ -83,11 +85,16 @@ function normalize(
   })
 }
 
-export function titleDetails(token: string, mediaType: MediaType, id: number) {
+export function titleDetails(
+  token: string,
+  mediaType: MediaType,
+  id: number,
+  language: Language = 'en',
+) {
   return Effect.gen(function* () {
     const details = yield* request(
       token,
-      `/${mediaType}/${id}?language=en-US`,
+      `/${mediaType}/${id}?language=${locales[language]}`,
       RawTitleSchema,
     )
     if (details.adult || details.id !== id)
@@ -103,10 +110,16 @@ export function pickTitle(
   excludedIds: readonly number[],
   selectedFilters: DiscoveryFilters,
   country: string | null,
+  language: Language = 'en',
 ) {
   return Effect.gen(function* () {
     if (selectedFilters.genres.length || selectedFilters.providers.length) {
-      const options = yield* discoveryOptions(token, mediaType, country)
+      const options = yield* discoveryOptions(
+        token,
+        mediaType,
+        country,
+        language,
+      )
       if (
         selectedFilters.genres.some(
           (id) => !options.genres.some((genre) => genre.id === id),
@@ -119,7 +132,7 @@ export function pickTitle(
     }
     const today = new Date().toISOString().slice(0, 10)
     const filters = new URLSearchParams({
-      language: 'en-US',
+      language: locales[language],
       include_adult: 'false',
       sort_by: 'popularity.desc',
       'vote_count.gte': '100',
@@ -164,7 +177,7 @@ export function pickTitle(
       .find((titles) => titles.length > 0)
     if (!candidates) return yield* new TmdbError({ reason: 'empty' })
     const selected = candidates[Math.floor(Math.random() * candidates.length)]
-    return yield* titleDetails(token, mediaType, selected.id)
+    return yield* titleDetails(token, mediaType, selected.id, language)
   })
 }
 
@@ -173,10 +186,11 @@ export function findTitles(
   mediaType: MediaType,
   page: number,
   selection: { query: string } | { id: number },
+  language: Language = 'en',
 ) {
   return Effect.gen(function* () {
     const params = new URLSearchParams({
-      language: 'en-US',
+      language: locales[language],
       page: String(page),
       include_adult: 'false',
     })
@@ -189,7 +203,7 @@ export function findTitles(
     if (response.page !== page)
       return yield* new TmdbError({ reason: 'invalid-response' })
     const genres = response.results.some((title) => title.genre_ids?.length)
-      ? (yield* discoveryOptions(token, mediaType, null)).genres
+      ? (yield* discoveryOptions(token, mediaType, null, language)).genres
       : []
     const images = yield* imageConfiguration(token)
     const results = yield* Effect.forEach(

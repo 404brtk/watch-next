@@ -5,15 +5,17 @@ import { Button } from '@/components/ui/button'
 import { mediaMetadata } from '@/lib/media'
 import type { MediaTitle } from '@/lib/media'
 import { MediaRating } from '@/components/media-rating'
+import { useLanguage } from '@/components/language-provider'
 
 export const mediaFrameClassName =
   'relative isolate flex aspect-[0.9] min-h-90 w-full items-end overflow-hidden rounded-[22px] bg-card shadow-(--card-shadow) sm:aspect-[1.85] sm:min-h-105 after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[inset_0_1px_0_var(--surface-highlight)] after:outline after:-outline-offset-1 after:outline-(--image-outline) forced-colors:border forced-colors:border-[ButtonText]'
 
 function Backdrop({ title }: { title: MediaTitle }) {
+  const { t } = useLanguage()
   const [failed, setFailed] = useState(false)
   return failed || !title.backdrop ? (
     <div className="absolute inset-0 -z-1 grid place-items-center text-muted-foreground">
-      Artwork unavailable
+      {t.artworkUnavailable}
     </div>
   ) : (
     <img
@@ -39,8 +41,9 @@ export function MediaCard({
   detailsRef: Ref<HTMLButtonElement>
   onDetails: () => void
 }) {
+  const { language, t } = useLanguage()
   return (
-    <article className={mediaFrameClassName} aria-label="Title recommendation">
+    <article className={mediaFrameClassName} aria-label={t.recommendation}>
       <Backdrop key={title.id} title={title} />
       <div className="absolute inset-0 -z-2 bg-(image:--film-scrim)" />
       <div className="flex w-full items-end gap-3 px-5.5 py-6 sm:gap-6 sm:px-8.5 sm:py-7.5 forced-colors:bg-[Canvas]">
@@ -50,7 +53,7 @@ export function MediaCard({
           </h1>
           <p className="flex flex-wrap gap-x-3.5 gap-y-1 text-base text-muted-foreground tabular-nums sm:gap-x-5 sm:gap-y-1.5">
             <MediaRating rating={title.rating} />
-            {mediaMetadata(title).map((value) => (
+            {mediaMetadata(title, language).map((value) => (
               <span key={value}>{value}</span>
             ))}
           </p>
@@ -60,7 +63,7 @@ export function MediaCard({
           className="size-11 p-0 max-sm:absolute max-sm:inset-e-4 max-sm:top-4"
           variant="surface"
           size="icon"
-          aria-label={`Read about ${title.title}`}
+          aria-label={t.readAbout(title.title)}
           onClick={onDetails}
         >
           <Info className="size-5" aria-hidden="true" strokeWidth={1.75} />

@@ -1,7 +1,9 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Country } from '@/lib/discovery'
-import { fetchRegions, MediaRequestError } from '@/lib/media-client'
+import { fetchRegions } from '@/lib/media-client'
+import { useLanguage } from '@/components/language-provider'
+import { locales } from '@/lib/i18n'
 
 type RegionContextValue = {
   country: string | null
@@ -15,10 +17,11 @@ const RegionContext = createContext<RegionContextValue | null>(null)
 const preferenceKey = 'watch-next-country'
 
 export function RegionProvider({ children }: { children: ReactNode }) {
+  const { language, t } = useLanguage()
   const [country, setCountryCode] = useState<string | null>(null)
   const [countries, setCountries] = useState<readonly Country[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
+  const [error, setError] = useState(false)
+  const [notice, setNotice] = useState(false)
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
@@ -30,22 +33,17 @@ export function RegionProvider({ children }: { children: ReactNode }) {
         try {
           saved = localStorage.getItem(preferenceKey)
         } catch {
-          setNotice('Country choices cannot be remembered in this browser.')
+          setNotice(true)
         }
         const preferred = data.countries.some((item) => item.code === saved)
           ? saved
           : data.detectedCountry
         setCountries(data.countries)
         setCountryCode((current) => current ?? preferred)
-        setError(null)
+        setError(false)
       },
-      (cause) => {
-        if (!controller.signal.aborted)
-          setError(
-            cause instanceof MediaRequestError
-              ? cause.message
-              : 'Could not load countries. Try again.',
-          )
+      () => {
+        if (!controller.signal.aborted) setError(true)
       },
     )
     return () => controller.abort()
@@ -57,22 +55,29 @@ export function RegionProvider({ children }: { children: ReactNode }) {
     setCountryCode(next)
     try {
       localStorage.setItem(preferenceKey, next)
-      setNotice(null)
+      setNotice(false)
     } catch {
-      setNotice('Country choices cannot be remembered in this browser.')
+      setNotice(true)
     }
   }
+
+  const localizedCountries = useMemo(() => {
+    const names = new Intl.DisplayNames(locales[language], { type: 'region' })
+    return countries
+      .map((item) => ({ ...item, name: names.of(item.code) ?? item.name }))
+      .sort((a, b) => a.name.localeCompare(b.name, locales[language]))
+  }, [countries, language])
 
   return (
     <RegionContext
       value={{
         country,
-        countries,
-        error,
-        notice,
+        countries: localizedCountries,
+        error: error ? t.countriesError : null,
+        notice: notice ? t.rememberCountryError : null,
         setCountry,
         retry: () => {
-          setError(null)
+          setError(false)
           setAttempt((value) => value + 1)
         },
       }}

@@ -10,6 +10,7 @@ import { defaultDiscoveryFilters } from '@/lib/discovery'
 import { DiscoveryFilters } from '@/components/discovery-filters'
 import { useDiscoveryOptions } from '@/hooks/use-discovery-options'
 import { useRegion } from '@/components/region-provider'
+import { useLanguage } from '@/components/language-provider'
 
 export function RandomPicker({
   mediaType,
@@ -18,6 +19,7 @@ export function RandomPicker({
   mediaType: MediaType
   active: boolean
 }) {
+  const { t } = useLanguage()
   const { title, pending, error, pickAnother } = useMediaPicker(
     mediaType,
     active,
@@ -50,9 +52,9 @@ export function RandomPicker({
       />
       {optionsError && (
         <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
-          <p role="alert">Could not load genres and services.</p>
+          <p role="alert">{t.optionsError}</p>
           <Button variant="ghost" className="min-h-11" onClick={retry}>
-            Try again
+            {t.retry}
           </Button>
         </div>
       )}
@@ -70,7 +72,7 @@ export function RandomPicker({
           )}
           aria-busy={pending}
         >
-          <span>{pending ? 'Finding something good…' : 'No title loaded'}</span>
+          <span>{pending ? t.findingGood : t.noTitle}</span>
         </div>
       )}
       <Button
@@ -82,7 +84,7 @@ export function RandomPicker({
         }}
       >
         <Shuffle className="size-5" aria-hidden="true" strokeWidth={1.75} />
-        {pending ? 'Finding a pick…' : error ? 'Try again' : 'Pick another'}
+        {pending ? t.findingPick : error ? t.retry : t.pickAnother}
       </Button>
       {error && (
         <p
@@ -93,7 +95,7 @@ export function RandomPicker({
         </p>
       )}
       <output className="sr-only">
-        {pending ? 'Loading a recommendation' : ''}
+        {pending ? t.loadingRecommendation : ''}
       </output>
       <TitleDetails
         title={detailsOpen ? title : null}

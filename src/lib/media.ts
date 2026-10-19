@@ -1,4 +1,6 @@
 import { Schema } from 'effect'
+import { messages } from './i18n'
+import type { Language } from './i18n'
 
 export type MediaType = 'movie' | 'tv'
 
@@ -29,21 +31,25 @@ export const MediaPageSchema = Schema.Struct({
 })
 export type MediaPage = typeof MediaPageSchema.Type
 
-export function formatRuntime(minutes: number) {
+export function formatRuntime(minutes: number, language: Language = 'en') {
+  const t = messages[language]
   const hours = Math.floor(minutes / 60)
   const remainder = minutes % 60
-  return [hours > 0 ? `${hours}h` : '', remainder > 0 ? `${remainder}m` : '']
+  return [
+    hours > 0 ? t.runtimeHours(hours) : '',
+    remainder > 0 ? t.runtimeMinutes(remainder) : '',
+  ]
     .filter(Boolean)
     .join(' ')
 }
 
-export function mediaMetadata(title: MediaTitle) {
+export function mediaMetadata(title: MediaTitle, language: Language = 'en') {
   return [
     title.year?.toString(),
     title.mediaType === 'tv'
-      ? 'TV series'
+      ? messages[language].tvSeries
       : title.runtime
-        ? formatRuntime(title.runtime)
+        ? formatRuntime(title.runtime, language)
         : null,
     ...title.genres,
   ].filter((value): value is string => Boolean(value))

@@ -67,7 +67,7 @@ export function watchAvailability(
       },
       { label: 'Rent', providers: available.rent ?? [] },
       { label: 'Buy', providers: available.buy ?? [] },
-    ]
+    ] as const
     return {
       link: available.link,
       groups: categories

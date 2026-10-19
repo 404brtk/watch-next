@@ -7,6 +7,8 @@ import { useRegion } from '@/components/region-provider'
 import { fetchWatchAvailability, MediaRequestError } from '@/lib/media-client'
 import type { MediaTitle } from '@/lib/media'
 import type { WatchAvailability } from '@/lib/discovery'
+import { useLanguage } from '@/components/language-provider'
+import { locales } from '@/lib/i18n'
 
 function Availability({
   title,
@@ -15,6 +17,7 @@ function Availability({
   title: MediaTitle
   country: string
 }) {
+  const { language, t } = useLanguage()
   const [data, setData] = useState<WatchAvailability | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -25,6 +28,7 @@ function Availability({
       title.id,
       country,
       controller.signal,
+      language,
     ).then(
       (value) => {
         if (!controller.signal.aborted) setData(value)
@@ -32,14 +36,12 @@ function Availability({
       (cause) => {
         if (!controller.signal.aborted)
           setError(
-            cause instanceof MediaRequestError
-              ? cause.message
-              : 'Could not load viewing options. Try again.',
+            cause instanceof MediaRequestError ? cause.message : t.viewingError,
           )
       },
     )
     return () => controller.abort()
-  }, [title.mediaType, title.id, country, attempt])
+  }, [title.mediaType, title.id, country, attempt, language, t.viewingError])
 
   if (error)
     return (
@@ -53,23 +55,25 @@ function Availability({
             setAttempt((value) => value + 1)
           }}
         >
-          Try again
+          {t.retry}
         </Button>
       </div>
     )
   if (!data)
     return (
       <output className="text-sm text-muted-foreground">
-        Loading viewing options…
+        {t.loadingViewing}
       </output>
     )
+  const watchLink = data.link ? new URL(data.link) : null
+  watchLink?.searchParams.set('language', locales[language])
   return (
     <div className="space-y-5">
       {data.groups.length ? (
         data.groups.map((group) => (
           <div key={group.label}>
             <h3 className="mb-2 text-sm text-muted-foreground">
-              {group.label}
+              {t.watchGroups[group.label]}
             </h3>
             <ul className="flex flex-wrap gap-x-5 gap-y-3">
               {group.providers.map((provider) => (
@@ -85,23 +89,21 @@ function Availability({
           </div>
         ))
       ) : (
-        <p className="text-sm text-muted-foreground">
-          No viewing options listed for this country.
-        </p>
+        <p className="text-sm text-muted-foreground">{t.noViewing}</p>
       )}
-      {data.link && (
+      {watchLink && (
         <a
-          href={data.link}
+          href={watchLink.href}
           target="_blank"
           rel="noreferrer"
           className="inline-flex min-h-11 items-center gap-1.5 text-sm underline underline-offset-4"
         >
-          View watch options on TMDB
+          {t.watchOnTmdb}
           <ArrowUpRight className="size-4" aria-hidden="true" />
         </a>
       )}
       <p className="text-xs text-muted-foreground">
-        Availability from{' '}
+        {t.availabilityFrom}{' '}
         <a
           href="https://www.justwatch.com"
           className="underline underline-offset-3"
@@ -115,25 +117,26 @@ function Availability({
 }
 
 export function WatchOptions({ title }: { title: MediaTitle }) {
+  const { language, t } = useLanguage()
   const { country } = useRegion()
   return (
     <section
-      aria-label="Where to watch"
+      aria-label={t.whereToWatch}
       className="space-y-3 border-t border-white/8 pt-4"
     >
       <div className="flex flex-wrap items-center justify-between gap-x-3">
-        <h2 className="text-base font-medium">Where to watch</h2>
+        <h2 className="text-base font-medium">{t.whereToWatch}</h2>
         <CountryPicker />
       </div>
       {country ? (
         <Availability
-          key={`${title.mediaType}:${title.id}:${country}`}
+          key={`${title.mediaType}:${title.id}:${country}:${language}`}
           title={title}
           country={country}
         />
       ) : (
         <p className="text-sm text-muted-foreground">
-          Choose a country to see viewing options.
+          {t.chooseCountryForViewing}
         </p>
       )}
     </section>

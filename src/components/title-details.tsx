@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button'
 import { MediaRating } from '@/components/media-rating'
 import { WatchOptions } from '@/components/watch-options'
 import { fetchTitleDetails, MediaRequestError } from '@/lib/media-client'
+import { useLanguage } from '@/components/language-provider'
+import { locales } from '@/lib/i18n'
 
 export function TitleDetails({
   title,
@@ -25,6 +27,7 @@ export function TitleDetails({
   returnFocus: RefObject<HTMLButtonElement | null>
   loadDetails?: boolean
 }) {
+  const { language } = useLanguage()
   return (
     <Dialog
       open={title !== null}
@@ -35,7 +38,7 @@ export function TitleDetails({
       <DialogContent finalFocus={returnFocus}>
         {title && (
           <Details
-            key={`${title.mediaType}:${title.id}`}
+            key={`${title.mediaType}:${title.id}:${language}`}
             title={title}
             loadDetails={loadDetails}
           />
@@ -52,6 +55,7 @@ function Details({
   title: MediaTitle
   loadDetails: boolean
 }) {
+  const { language, t } = useLanguage()
   const [details, setDetails] = useState<MediaTitle | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -62,6 +66,7 @@ function Details({
       summary.mediaType,
       summary.id,
       controller.signal,
+      language,
     ).then(
       (value) => {
         if (!controller.signal.aborted) setDetails(value)
@@ -69,23 +74,28 @@ function Details({
       (cause) => {
         if (!controller.signal.aborted)
           setError(
-            cause instanceof MediaRequestError
-              ? cause.message
-              : 'Could not load details. Try again.',
+            cause instanceof MediaRequestError ? cause.message : t.detailsError,
           )
       },
     )
     return () => controller.abort()
-  }, [summary.mediaType, summary.id, loadDetails, attempt])
+  }, [
+    summary.mediaType,
+    summary.id,
+    loadDetails,
+    attempt,
+    language,
+    t.detailsError,
+  ])
   const title = details ?? summary
   return (
     <>
       <DialogTitle>
         <a
-          href={`https://www.themoviedb.org/${title.mediaType}/${title.id}`}
+          href={`https://www.themoviedb.org/${title.mediaType}/${title.id}?language=${locales[language]}`}
           target="_blank"
           rel="noreferrer"
-          aria-label={`View ${title.title} on TMDB (opens in a new tab)`}
+          aria-label={t.tmdbTitle(title.title)}
           className="rounded-sm underline-offset-4 hover:underline"
         >
           {title.title}{' '}
@@ -97,11 +107,9 @@ function Details({
       </DialogTitle>
       <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground tabular-nums">
         <MediaRating rating={title.rating} />
-        {mediaMetadata(title).join(' / ')}
+        {mediaMetadata(title, language).join(' / ')}
       </p>
-      <DialogDescription>
-        {title.synopsis || 'No synopsis available.'}
-      </DialogDescription>
+      <DialogDescription>{title.synopsis || t.noSynopsis}</DialogDescription>
       {error ? (
         <div className="text-sm text-muted-foreground">
           <p role="alert">{error}</p>
@@ -113,14 +121,14 @@ function Details({
               setAttempt((value) => value + 1)
             }}
           >
-            Try again
+            {t.retry}
           </Button>
         </div>
       ) : (
         loadDetails &&
         !details && (
           <output className="text-sm text-muted-foreground">
-            Loading details…
+            {t.loadingDetails}
           </output>
         )
       )}

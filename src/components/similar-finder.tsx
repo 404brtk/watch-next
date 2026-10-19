@@ -6,11 +6,21 @@ import { TitleGrid } from '@/components/title-grid'
 import { TitleDetails } from '@/components/title-details'
 import { useTitleResults } from '@/hooks/use-title-results'
 import type { MediaTitle, MediaType } from '@/lib/media'
+import { useLanguage } from '@/components/language-provider'
+import { fetchTitleDetails, MediaRequestError } from '@/lib/media-client'
+import type { Language } from '@/lib/i18n'
 
 export function SimilarFinder({ mediaType }: { mediaType: MediaType }) {
+  const { language, t } = useLanguage()
   const [query, setQuery] = useState('')
   const [seed, setSeed] = useState<MediaTitle | null>(null)
   const [details, setDetails] = useState<MediaTitle | null>(null)
+  const seedLanguage = useRef(language)
+  const [seedError, setSeedError] = useState<{
+    language: Language
+    message: string
+  } | null>(null)
+  const [seedAttempt, setSeedAttempt] = useState(0)
   const composing = useRef(false)
   const input = useRef<HTMLInputElement>(null)
   const detailsButton = useRef<HTMLButtonElement>(null)
@@ -31,6 +41,31 @@ export function SimilarFinder({ mediaType }: { mediaType: MediaType }) {
     loadMore,
     retry,
   } = useTitleResults(mediaType)
+  const seedId = seed?.id
+
+  useEffect(() => {
+    if (!seedId || seedLanguage.current === language) return
+    const controller = new AbortController()
+    setSeedError(null)
+    void fetchTitleDetails(mediaType, seedId, controller.signal, language).then(
+      (title) => {
+        if (controller.signal.aborted) return
+        seedLanguage.current = language
+        setSeed(title)
+      },
+      (cause) => {
+        if (!controller.signal.aborted)
+          setSeedError({
+            language,
+            message:
+              cause instanceof MediaRequestError
+                ? cause.message
+                : t.detailsError,
+          })
+      },
+    )
+    return () => controller.abort()
+  }, [language, mediaType, seedId, seedAttempt, t.detailsError])
 
   useEffect(() => {
     const target = nextResult.current
@@ -46,6 +81,8 @@ export function SimilarFinder({ mediaType }: { mediaType: MediaType }) {
   }, [data, pending])
 
   function choose(title: MediaTitle) {
+    seedLanguage.current = language
+    setSeedError(null)
     setSeed(title)
     search({ id: title.id })
     requestAnimationFrame(() => heading.current?.focus())
@@ -59,9 +96,10 @@ export function SimilarFinder({ mediaType }: { mediaType: MediaType }) {
             variant="surface"
             size="icon"
             className="size-11 shrink-0"
-            aria-label="Choose another title"
+            aria-label={t.chooseAnother}
             onClick={() => {
               setSeed(null)
+              setSeedError(null)
               reset()
               requestAnimationFrame(() => input.current?.focus())
             }}
@@ -69,7 +107,7 @@ export function SimilarFinder({ mediaType }: { mediaType: MediaType }) {
             <ArrowLeft className="size-5" aria-hidden="true" />
           </Button>
           <div className="min-w-0">
-            <p className="mb-1 text-sm text-muted-foreground">More like</p>
+            <p className="mb-1 text-sm text-muted-foreground">{t.moreLike}</p>
             <h1
               ref={heading}
               tabIndex={-1}
@@ -77,22 +115,33 @@ export function SimilarFinder({ mediaType }: { mediaType: MediaType }) {
             >
               {seed.title}
             </h1>
+            {seedError?.language === language && (
+              <div className="mt-2 text-sm text-muted-foreground">
+                <p role="alert">{seedError.message}</p>
+                <Button
+                  variant="ghost"
+                  onClick={() => setSeedAttempt((value) => value + 1)}
+                >
+                  {t.retry}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       ) : (
         <div className="mx-auto mb-9 w-full max-w-160 sm:mb-12">
           <h1 className="mb-6 text-center text-2xl font-medium tracking-[-0.02em] sm:text-3xl">
-            Find something like…
+            {t.findSomethingLike}
           </h1>
           <form
-            aria-label="Title search"
+            aria-label={t.titleSearch}
             onSubmit={(event) => {
               event.preventDefault()
               if (query.trim()) search({ query: query.trim() })
             }}
           >
             <label htmlFor={`title-search-${mediaType}`} className="sr-only">
-              {mediaType === 'movie' ? 'Movie' : 'TV show'} you like
+              {mediaType === 'movie' ? t.movieYouLike : t.showYouLike}
             </label>
             <div className="flex min-h-16 items-center gap-3 rounded-full border border-white/10 bg-(--glass-fill) py-2 ps-5 pe-2 shadow-(--control-shadow) backdrop-blur-xl has-[[data-slot=input]:focus-visible]:outline-2 has-[[data-slot=input]:focus-visible]:-outline-offset-2 has-[[data-slot=input]:focus-visible]:outline-ring [@media(prefers-reduced-transparency:reduce)]:bg-card forced-colors:border-[ButtonText] forced-colors:has-[[data-slot=input]:focus-visible]:outline-[Highlight]">
               <Search
@@ -121,9 +170,7 @@ export function SimilarFinder({ mediaType }: { mediaType: MediaType }) {
                     event.preventDefault()
                 }}
                 placeholder={
-                  mediaType === 'movie'
-                    ? 'A movie you love…'
-                    : 'A show you love…'
+                  mediaType === 'movie' ? t.moviePlaceholder : t.showPlaceholder
                 }
                 maxLength={200}
                 autoComplete="off"
@@ -134,7 +181,7 @@ export function SimilarFinder({ mediaType }: { mediaType: MediaType }) {
                 type="submit"
                 variant="surface"
                 size="icon"
-                aria-label="Search"
+                aria-label={t.search}
                 disabled={!query.trim()}
                 className="size-11 shrink-0"
               >
@@ -148,7 +195,7 @@ export function SimilarFinder({ mediaType }: { mediaType: MediaType }) {
         <>
           {!seed && (
             <h2 className="mb-5 text-base text-muted-foreground">
-              Choose a {mediaType === 'movie' ? 'movie' : 'show'}
+              {mediaType === 'movie' ? t.chooseMovie : t.chooseShow}
             </h2>
           )}
           <div ref={results}>
@@ -170,16 +217,18 @@ export function SimilarFinder({ mediaType }: { mediaType: MediaType }) {
         <output className="text-base text-muted-foreground" aria-live="polite">
           {pending
             ? seed
-              ? 'Finding similar titles…'
-              : 'Searching…'
+              ? t.findingSimilar
+              : t.searching
             : data?.results.length === 0
               ? seed
-                ? 'No recommendations yet. Try another title.'
-                : 'No matches. Try a different title.'
+                ? t.noRecommendations
+                : t.noResults
               : ''}
           <span className="sr-only">
             {!pending && data && data.results.length > 0
-              ? `${data.results.length} ${seed ? 'recommendations' : 'search results'} loaded.`
+              ? seed
+                ? t.recommendationsLoaded(data.results.length)
+                : t.resultsLoaded(data.results.length)
               : ''}
           </span>
         </output>
@@ -198,7 +247,7 @@ export function SimilarFinder({ mediaType }: { mediaType: MediaType }) {
             onClick={retry}
             aria-disabled={pending}
           >
-            Try again
+            {t.retry}
           </Button>
         ) : (
           data &&
@@ -217,15 +266,11 @@ export function SimilarFinder({ mediaType }: { mediaType: MediaType }) {
               }}
               aria-disabled={pending}
             >
-              {pending ? 'Loading…' : 'Load more'}
+              {pending ? t.loading : t.loadMore}
             </Button>
           )
         )}
-        {!selection && (
-          <span className="sr-only">
-            Search for a title to get recommendations.
-          </span>
-        )}
+        {!selection && <span className="sr-only">{t.searchToStart}</span>}
       </div>
       <TitleDetails
         loadDetails

@@ -54,7 +54,7 @@ export const WatchAvailabilitySchema = Schema.Struct({
   link: Schema.NullOr(Schema.String),
   groups: Schema.Array(
     Schema.Struct({
-      label: Schema.String,
+      label: Schema.Literals(['Subscriptions', 'Free', 'Rent', 'Buy']),
       providers: Schema.Array(ProviderSchema),
     }),
   ),

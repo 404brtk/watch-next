@@ -12,16 +12,18 @@ import {
   ComboboxValue,
 } from '@/components/ui/combobox'
 import type { Country } from '@/lib/discovery'
+import { useLanguage } from '@/components/language-provider'
 
 export function CountryPicker() {
+  const { t } = useLanguage()
   const { country, countries, setCountry, error, notice, retry } = useRegion()
   const selected = countries.find((item) => item.code === country) ?? null
   if (error)
     return (
       <div className="text-sm text-muted-foreground">
-        <p role="alert">Could not load countries.</p>
+        <p role="alert">{t.countriesError}</p>
         <Button variant="ghost" className="min-h-11" onClick={retry}>
-          Try again
+          {t.retry}
         </Button>
       </div>
     )
@@ -37,26 +39,26 @@ export function CountryPicker() {
         isItemEqualToValue={(a, b) => a.code === b.code}
       >
         <ComboboxFieldLabel className="sr-only">
-          Watch country
+          {t.watchCountry}
         </ComboboxFieldLabel>
         <ComboboxTrigger
           disabled={!countries.length}
-          aria-label={`Watch country: ${selected?.name ?? 'Choose country'}`}
+          aria-label={`${t.watchCountry}: ${selected?.name ?? t.chooseCountry}`}
           className="h-auto min-h-11 border-transparent bg-transparent px-2 text-sm text-muted-foreground shadow-none"
         >
           <ComboboxValue>
             <span className="min-w-0 max-w-44 truncate">
               {selected?.name ??
-                (countries.length ? 'Choose country' : 'Loading countries…')}
+                (countries.length ? t.chooseCountry : t.loadingCountries)}
             </span>
           </ComboboxValue>
         </ComboboxTrigger>
         <ComboboxContent>
           <ComboboxInput
-            aria-label="Search countries"
-            placeholder="Search countries…"
+            aria-label={t.searchCountries}
+            placeholder={`${t.searchCountries}…`}
           />
-          <ComboboxEmpty>No matching countries.</ComboboxEmpty>
+          <ComboboxEmpty>{t.noCountries}</ComboboxEmpty>
           <ComboboxList>
             {(item: Country) => (
               <ComboboxItem key={item.code} value={item}>

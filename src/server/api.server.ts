@@ -8,11 +8,23 @@ import { CountryCodeSchema, DiscoveryFiltersSchema } from '../lib/discovery'
 import type { DiscoveryOptions } from '../lib/discovery'
 import { availableRegions, discoveryOptions } from './discovery-options.server'
 import { watchAvailability } from './watch-availability.server'
+import {
+  isLanguage,
+  messages,
+  requestCountry,
+  requestLanguage,
+} from '../lib/i18n'
 
 type ApiEnv = { Bindings: { TMDB_READ_ACCESS_TOKEN?: string } }
 export const api = new Hono<ApiEnv>()
 api.use('/api/*', async (context, next) => {
   context.header('Cache-Control', 'no-store')
+  const language = context.req.query('language')
+  if (language !== undefined && !isLanguage(language))
+    return context.json(
+      { error: messages[requestLanguage(context.req.raw)].invalidSelection },
+      400,
+    )
   await next()
 })
 
@@ -20,12 +32,7 @@ api.get('/api/regions', (context) =>
   execute(context, (token) =>
     availableRegions(token).pipe(
       Effect.map((countries) => {
-        const request = context.req.raw
-        const geo = 'cf' in request ? request.cf : null
-        const hint =
-          geo && typeof geo === 'object' && 'country' in geo
-            ? geo.country
-            : context.req.header('CF-IPCountry')
+        const hint = requestCountry(context.req.raw)
         return {
           countries,
           detectedCountry:
@@ -48,6 +55,8 @@ function parseIds(value: string | undefined, limit: number) {
 
 api.get('/api/:mediaType/:action', async (context) => {
   const { mediaType, action } = context.req.param()
+  const language = apiLanguage(context)
+  const t = messages[language]
   if (
     (mediaType !== 'movie' && mediaType !== 'tv') ||
     ![
@@ -59,7 +68,7 @@ api.get('/api/:mediaType/:action', async (context) => {
       'details',
     ].includes(action)
   ) {
-    return context.json({ error: 'Not found.' }, 404)
+    return context.json({ error: t.notFound }, 404)
   }
   const ids = parseIds(context.req.query('exclude'), 50)
   const filters = {
@@ -88,10 +97,10 @@ api.get('/api/:mediaType/:action', async (context) => {
     (['recommendations', 'watch', 'details'].includes(action) &&
       (!Number.isSafeInteger(id) || id <= 0))
   )
-    return context.json({ error: 'Invalid selection.' }, 400)
+    return context.json({ error: t.invalidSelection }, 400)
 
   if (action === 'watch') {
-    if (!country) return context.json({ error: 'Choose a country.' }, 400)
+    if (!country) return context.json({ error: t.chooseCountry }, 400)
     return execute(context, (token) =>
       watchAvailability(token, mediaType, id, country),
     )
@@ -102,26 +111,33 @@ api.get('/api/:mediaType/:action', async (context) => {
       TmdbError
     > =
       action === 'pick'
-        ? pickTitle(token, mediaType, ids, filters, country)
+        ? pickTitle(token, mediaType, ids, filters, country, language)
         : action === 'options'
-          ? discoveryOptions(token, mediaType, country)
+          ? discoveryOptions(token, mediaType, country, language)
           : action === 'details'
-            ? titleDetails(token, mediaType, id)
+            ? titleDetails(token, mediaType, id, language)
             : findTitles(
                 token,
                 mediaType,
                 page,
                 action === 'search' ? { query } : { id },
+                language,
               )
 
     return operation
   })
 })
 
+function apiLanguage(context: Context<ApiEnv>) {
+  const language = context.req.query('language')
+  return isLanguage(language) ? language : requestLanguage(context.req.raw)
+}
+
 function execute<A>(
   context: Context<ApiEnv>,
   operation: (token: string) => Effect.Effect<A, TmdbError>,
 ) {
+  const t = messages[apiLanguage(context)]
   const token = context.env.TMDB_READ_ACCESS_TOKEN?.trim()
   const result = token
     ? operation(token)
@@ -134,23 +150,12 @@ function execute<A>(
       ),
       Effect.map((result) => context.json(result)),
       Effect.catchTag('TmdbError', ({ reason, endpoint, status }) => {
-        const messages = {
-          configuration: 'Discovery is not configured yet.',
-          authentication: 'Could not connect to TMDB.',
-          'rate-limit': 'TMDB is busy. Try again shortly.',
-          unavailable: 'Could not reach TMDB. Try again.',
-          'invalid-response': 'TMDB returned incomplete data. Try again.',
-          'invalid-filters':
-            'These filters are unavailable. Clear them and try again.',
-          empty: 'No new matches. Try fewer filters or pick again.',
-          timeout: 'TMDB took too long to respond. Try again.',
-        }
         if (reason === 'rate-limit') context.header('Retry-After', '30')
         return Effect.logError('TMDB request failed').pipe(
           Effect.annotateLogs({ reason, endpoint, status }),
           Effect.as(
             context.json(
-              { error: messages[reason] },
+              { error: t.apiErrors[reason] },
               reason === 'invalid-filters'
                 ? 400
                 : reason === 'invalid-response' || reason === 'authentication'
@@ -165,8 +170,13 @@ function execute<A>(
   )
 }
 
-api.notFound((context) => context.json({ error: 'Not found.' }, 404))
+api.notFound((context) =>
+  context.json({ error: messages[apiLanguage(context)].notFound }, 404),
+)
 api.onError((_error, context) => {
   console.error('Unexpected discovery API failure')
-  return context.json({ error: 'Could not load titles. Try again.' }, 500)
+  return context.json(
+    { error: messages[apiLanguage(context)].titlesError },
+    500,
+  )
 })

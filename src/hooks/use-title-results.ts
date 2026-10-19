@@ -1,17 +1,28 @@
-﻿import { useEffect, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchTitles, MediaRequestError } from '@/lib/media-client'
 import type { MediaPage, MediaType } from '@/lib/media'
+import { useLanguage } from '@/components/language-provider'
 
 type Selection = { query: string } | { id: number }
 
 export function useTitleResults(mediaType: MediaType) {
+  const { language, t } = useLanguage()
   const [selection, setSelection] = useState<Selection | null>(null)
   const [data, setData] = useState<MediaPage | null>(null)
   const [pending, setPending] = useState(false)
+  const [dataLanguage, setDataLanguage] = useState(language)
   const [error, setError] = useState<string | null>(null)
   const request = useRef<AbortController | null>(null)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const failedPage = useRef(1)
+  const previousLanguage = useRef(language)
+
+  if (dataLanguage !== language) {
+    setDataLanguage(language)
+    setData(null)
+    setError(null)
+    setPending(selection !== null)
+  }
 
   useEffect(
     () => () => {
@@ -21,39 +32,56 @@ export function useTitleResults(mediaType: MediaType) {
     [],
   )
 
-  async function load(next: Selection, page: number) {
+  const load = useCallback(
+    (next: Selection, page: number) => {
+      request.current?.abort()
+      const controller = new AbortController()
+      request.current = controller
+      failedPage.current = page
+      return fetchTitles(mediaType, next, page, controller.signal, language)
+        .then((result) => {
+          if (controller.signal.aborted) return
+          setError(null)
+          setData((previous) => {
+            const titles =
+              page > 1
+                ? [...(previous?.results ?? []), ...result.results]
+                : result.results
+            return {
+              ...result,
+              results: [
+                ...new Map(titles.map((title) => [title.id, title])).values(),
+              ],
+            }
+          })
+        })
+        .catch((cause: unknown) => {
+          if (!controller.signal.aborted) {
+            if (page === 1) setData(null)
+            setError(
+              cause instanceof MediaRequestError
+                ? cause.message
+                : t.titlesError,
+            )
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setPending(false)
+          }
+        })
+    },
+    [mediaType, language, t.titlesError],
+  )
+
+  useEffect(() => {
+    if (previousLanguage.current === language) return
+    previousLanguage.current = language
+    if (searchTimer.current !== null) clearTimeout(searchTimer.current)
+    searchTimer.current = null
     request.current?.abort()
-    const controller = new AbortController()
-    request.current = controller
-    failedPage.current = page
-    setPending(true)
-    setError(null)
-    try {
-      const result = await fetchTitles(mediaType, next, page, controller.signal)
-      if (controller.signal.aborted) return
-      setData((previous) => {
-        const titles =
-          page > 1
-            ? [...(previous?.results ?? []), ...result.results]
-            : result.results
-        return {
-          ...result,
-          results: [
-            ...new Map(titles.map((title) => [title.id, title])).values(),
-          ],
-        }
-      })
-    } catch (cause) {
-      if (!controller.signal.aborted)
-        setError(
-          cause instanceof MediaRequestError
-            ? cause.message
-            : 'Could not load titles. Try again.',
-        )
-    } finally {
-      if (!controller.signal.aborted) setPending(false)
-    }
-  }
+    if (selection) void load(selection, 1)
+  }, [language, selection, load])
 
   function search(next: Selection, delay = 0) {
     if (
@@ -95,19 +123,32 @@ export function useTitleResults(mediaType: MediaType) {
   }
 
   return {
-    data,
-    pending,
-    error,
+    data: dataLanguage === language ? data : null,
+    pending: pending || (selection !== null && dataLanguage !== language),
+    error: dataLanguage === language ? error : null,
     selection,
     search,
     searchByTitle,
     reset,
     loadMore: () => {
-      if (selection && !pending && data && data.page < data.totalPages)
+      if (
+        selection &&
+        !pending &&
+        dataLanguage === language &&
+        data &&
+        data.page < data.totalPages
+      ) {
+        setPending(true)
+        setError(null)
         void load(selection, data.page + 1)
+      }
     },
     retry: () => {
-      if (selection && !pending) void load(selection, failedPage.current)
+      if (selection && !pending && dataLanguage === language) {
+        setPending(true)
+        setError(null)
+        void load(selection, failedPage.current)
+      }
     },
   }
 }

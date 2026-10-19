@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react'
 import { fetchDiscoveryOptions, MediaRequestError } from '@/lib/media-client'
 import type { DiscoveryOptions } from '@/lib/discovery'
 import type { MediaType } from '@/lib/media'
+import { useLanguage } from '@/components/language-provider'
 
 export function useDiscoveryOptions(
   mediaType: MediaType,
   country: string | null,
   active: boolean,
 ) {
-  const key = `${mediaType}:${country ?? ''}`
+  const { language, t } = useLanguage()
+  const key = `${mediaType}:${country ?? ''}:${language}`
   const [result, setResult] = useState<{
     key: string
     options: DiscoveryOptions | null
@@ -22,7 +24,12 @@ export function useDiscoveryOptions(
   useEffect(() => {
     if (!active || loaded) return
     const controller = new AbortController()
-    void fetchDiscoveryOptions(mediaType, controller.signal, country).then(
+    void fetchDiscoveryOptions(
+      mediaType,
+      controller.signal,
+      country,
+      language,
+    ).then(
       (value) => {
         if (!controller.signal.aborted) {
           setResult({ key, options: value, error: null })
@@ -36,12 +43,21 @@ export function useDiscoveryOptions(
             error:
               cause instanceof MediaRequestError
                 ? cause.message
-                : 'Could not load genres and services. Try again.',
+                : t.optionsError,
           })
       },
     )
     return () => controller.abort()
-  }, [mediaType, country, key, active, loaded, attempt])
+  }, [
+    mediaType,
+    country,
+    key,
+    active,
+    loaded,
+    attempt,
+    language,
+    t.optionsError,
+  ])
 
   function retry() {
     setResult(null)

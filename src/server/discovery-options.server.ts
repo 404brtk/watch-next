@@ -3,6 +3,8 @@ import { CountryCodeSchema } from '../lib/discovery'
 import type { Country, DiscoveryOptions } from '../lib/discovery'
 import type { MediaType } from '../lib/media'
 import { imageConfiguration, request, TmdbError } from './tmdb-client.server'
+import { locales } from '../lib/i18n'
+import type { Language } from '../lib/i18n'
 
 const Id = Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0))
 const GenresSchema = Schema.Struct({
@@ -71,19 +73,24 @@ export function discoveryOptions(
   token: string,
   mediaType: MediaType,
   country: string | null,
+  language: Language = 'en',
 ) {
   return Effect.gen(function* () {
     if (country) yield* requireRegion(token, country)
-    const key = `${mediaType}:${country ?? ''}`
+    const key = `${mediaType}:${country ?? ''}:${language}`
     const cached = cache.get(key)
     if (cached && cached.expiresAt > Date.now()) return cached.value
     const [genres, providers] = yield* Effect.all(
       [
-        request(token, `/genre/${mediaType}/list?language=en-US`, GenresSchema),
+        request(
+          token,
+          `/genre/${mediaType}/list?language=${locales[language]}`,
+          GenresSchema,
+        ),
         country
           ? request(
               token,
-              `/watch/providers/${mediaType}?language=en-US&watch_region=${country}`,
+              `/watch/providers/${mediaType}?language=${locales[language]}&watch_region=${country}`,
               ProvidersSchema,
             )
           : Effect.succeed({ results: [] }),

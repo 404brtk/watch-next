@@ -24,6 +24,8 @@ import { ProviderLogo } from '@/components/provider-logo'
 import { useRegion } from '@/components/region-provider'
 import { defaultDiscoveryFilters } from '@/lib/discovery'
 import type { DiscoveryFilters, DiscoveryOptions } from '@/lib/discovery'
+import { useLanguage } from '@/components/language-provider'
+import { formatRating } from '@/lib/i18n'
 
 type Choice = { id: number; name: string; logo?: string | null }
 
@@ -33,6 +35,8 @@ const filterTriggerClassName =
 function MultipleFilter({
   label,
   emptyLabel,
+  searchLabel,
+  clearLabel,
   choices,
   value,
   onChange,
@@ -42,6 +46,8 @@ function MultipleFilter({
 }: {
   label: string
   emptyLabel: string
+  searchLabel: string
+  clearLabel: string
   choices: readonly Choice[]
   value: readonly number[]
   onChange: (value: number[]) => void
@@ -49,6 +55,7 @@ function MultipleFilter({
   children?: ReactNode
   maxSelections?: number
 }) {
+  const { t } = useLanguage()
   const selected = choices.filter((item) => value.includes(item.id))
   const summary = selected.length
     ? `${selected[0].name}${selected.length > 1 ? ` +${selected.length - 1}` : ''}`
@@ -74,10 +81,10 @@ function MultipleFilter({
       </ComboboxTrigger>
       <ComboboxContent>
         <ComboboxInput
-          aria-label={`Search ${label.toLowerCase()}`}
-          placeholder={`Search ${label.toLowerCase()}…`}
+          aria-label={searchLabel}
+          placeholder={`${searchLabel}…`}
         />
-        <ComboboxEmpty>No matches. Try another name.</ComboboxEmpty>
+        <ComboboxEmpty>{t.noOptions}</ComboboxEmpty>
         <ComboboxList>
           {(item: Choice) => (
             <ComboboxItem
@@ -96,7 +103,7 @@ function MultipleFilter({
         </ComboboxList>
         {selected.length >= maxSelections && (
           <p className="px-4 py-2 text-sm text-muted-foreground">
-            Choose up to {maxSelections}.
+            {t.maxSelections(maxSelections)}
           </p>
         )}
         {(selected.length > 0 || children) && (
@@ -108,7 +115,7 @@ function MultipleFilter({
                 className="min-h-11 px-3 text-sm text-muted-foreground"
                 onClick={() => onChange([])}
               >
-                Clear {label.toLowerCase()}
+                {clearLabel}
               </Button>
             )}
           </div>
@@ -118,13 +125,6 @@ function MultipleFilter({
   )
 }
 
-const lengths = [
-  { value: null, label: 'Any length' },
-  { value: 90, label: 'Under 90 min' },
-  { value: 120, label: 'Under 2 hours' },
-  { value: 180, label: 'Under 3 hours' },
-]
-
 function LengthFilter({
   value,
   onChange,
@@ -132,21 +132,30 @@ function LengthFilter({
   value: number | null
   onChange: (value: number | null) => void
 }) {
+  const { t } = useLanguage()
+  const lengths = [
+    { value: null, label: t.anyLength },
+    { value: 90, label: t.under90 },
+    { value: 120, label: t.under120 },
+    { value: 180, label: t.under180 },
+  ]
   const [open, setOpen] = useState(false)
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        aria-label={`Length: ${lengths.find((item) => item.value === value)?.label}`}
+        aria-label={`${t.length}: ${lengths.find((item) => item.value === value)?.label}`}
         className={filterTriggerClassName}
       >
         <span className="truncate">
-          {lengths.find((item) => item.value === value)?.label}
+          {value === null
+            ? t.lengthPlaceholder
+            : lengths.find((item) => item.value === value)?.label}
         </span>
       </PopoverTrigger>
       <PopoverContent align="start">
-        <PopoverTitle>Length</PopoverTitle>
+        <PopoverTitle>{t.length}</PopoverTitle>
         <fieldset className="grid grid-cols-2 gap-2">
-          <legend className="sr-only">Maximum movie length</legend>
+          <legend className="sr-only">{t.maximumLength}</legend>
           {lengths.map((item) => (
             <label key={item.label} className="relative cursor-pointer">
               <input
@@ -161,7 +170,7 @@ function LengthFilter({
                   if (event.detail > 0) setOpen(false)
                 }}
               />
-              <span className="flex min-h-11 items-center justify-center rounded-xl border border-white/8 px-2 text-sm text-muted-foreground tabular-nums peer-checked:bg-accent peer-checked:text-foreground peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring hover:bg-accent/50 hover:text-foreground peer-checked:hover:bg-accent">
+              <span className="flex min-h-11 items-center justify-center rounded-xl border border-white/8 px-2 text-center text-sm text-muted-foreground tabular-nums peer-checked:bg-accent peer-checked:text-foreground peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring hover:bg-accent/50 hover:text-foreground peer-checked:hover:bg-accent">
                 {item.label}
               </span>
             </label>
@@ -179,25 +188,27 @@ function RatingFilter({
   value: number
   onChange: (value: number) => void
 }) {
+  const { language, t } = useLanguage()
+  const rating = formatRating(value, language)
   return (
     <Popover>
       <PopoverTrigger
-        aria-label={`Minimum rating: ${value ? `${value.toFixed(1)} or higher` : 'Any rating'}`}
+        aria-label={`${t.minimumRating}: ${value ? t.ratingMinimum(rating) : t.anyRating}`}
         className={filterTriggerClassName}
       >
         <span className="truncate">
-          {value ? `${value.toFixed(1)}+ rating` : 'Any rating'}
+          {value ? t.ratingFilter(rating) : t.ratingPlaceholder}
         </span>
       </PopoverTrigger>
       <PopoverContent align="start">
         <div className="flex items-center justify-between gap-4">
-          <PopoverTitle>Minimum rating</PopoverTitle>
+          <PopoverTitle>{t.minimumRating}</PopoverTitle>
           <output className="text-sm tabular-nums">
-            {value ? `${value.toFixed(1)}+` : 'Any'}
+            {value ? `${rating}+` : t.any}
           </output>
         </div>
         <Slider
-          aria-label="Minimum rating"
+          aria-label={t.minimumRating}
           value={value}
           min={0}
           max={10}
@@ -207,7 +218,9 @@ function RatingFilter({
             if (typeof next === 'number') onChange(next)
           }}
           getAriaValueText={(_formatted, next) =>
-            next === 0 ? 'Any rating' : `${next} out of 10 or higher`
+            next === 0
+              ? t.anyRating
+              : t.ratingMinimum(formatRating(next, language))
           }
         />
         <Button
@@ -215,7 +228,7 @@ function RatingFilter({
           className="min-h-11 w-fit px-2 text-muted-foreground"
           onClick={() => onChange(0)}
         >
-          Any rating
+          {t.anyRating}
         </Button>
       </PopoverContent>
     </Popover>
@@ -233,6 +246,7 @@ export function DiscoveryFilters({
   options: DiscoveryOptions | null
   movies: boolean
 }) {
+  const { t } = useLanguage()
   const { country } = useRegion()
   const filtered =
     value.genres.length > 0 ||
@@ -240,14 +254,16 @@ export function DiscoveryFilters({
     value.maxRuntime !== null ||
     value.minRating > 0
   return (
-    <fieldset className="relative w-full min-w-0 max-w-80 pb-13 md:max-w-190 md:px-16 md:pb-0">
-      <legend className="sr-only">Filters for the next pick</legend>
+    <fieldset className="grid w-full min-w-0 max-w-80 items-start gap-2.5 md:max-w-190 md:grid-cols-[minmax(0,1fr)_auto] md:gap-x-3">
+      <legend className="sr-only">{t.filters}</legend>
       <div
         className={`grid grid-cols-2 gap-2.5 ${movies ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}
       >
         <MultipleFilter
-          label="Genres"
-          emptyLabel="Any genre"
+          label={t.genres}
+          emptyLabel={t.anyGenre}
+          searchLabel={t.searchGenres}
+          clearLabel={t.clearGenres}
           choices={options?.genres ?? []}
           value={value.genres}
           onChange={(genres) => onChange({ ...value, genres })}
@@ -260,9 +276,11 @@ export function DiscoveryFilters({
           />
         )}
         <MultipleFilter
-          label="Services"
+          label={t.services}
+          searchLabel={t.searchServices}
+          clearLabel={t.clearServices}
           maxSelections={50}
-          emptyLabel="Any service"
+          emptyLabel={t.anyService}
           choices={country ? (options?.providers ?? []) : []}
           value={value.providers}
           onChange={(providers) => onChange({ ...value, providers })}
@@ -275,24 +293,23 @@ export function DiscoveryFilters({
           onChange={(minRating) => onChange({ ...value, minRating })}
         />
       </div>
-      <div className="absolute inset-x-0 bottom-0 flex justify-center md:inset-x-auto md:inset-e-0 md:top-0 md:bottom-auto">
-        {filtered && (
-          <Button
-            variant="ghost"
-            className="min-h-11 px-3 text-sm text-muted-foreground"
-            onClick={(event) => {
-              onChange(defaultDiscoveryFilters)
-              event.currentTarget
-                .closest('fieldset')
-                ?.querySelector<HTMLButtonElement>(
-                  '[data-slot="combobox-trigger"]',
-                )
-                ?.focus()
-            }}
-          >
-            Clear
-          </Button>
-        )}
+      <div className="flex justify-center">
+        <Button
+          variant="ghost"
+          className={`min-h-11 px-3 text-sm text-muted-foreground${filtered ? '' : ' invisible'}`}
+          disabled={!filtered}
+          onClick={(event) => {
+            onChange(defaultDiscoveryFilters)
+            event.currentTarget
+              .closest('fieldset')
+              ?.querySelector<HTMLButtonElement>(
+                '[data-slot="combobox-trigger"]',
+              )
+              ?.focus()
+          }}
+        >
+          {t.clear}
+        </Button>
       </div>
     </fieldset>
   )
