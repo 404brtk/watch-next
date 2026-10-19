@@ -1,4 +1,4 @@
-﻿@import 'tailwindcss';
+@import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @import '@fontsource-variable/inter-tight/wght.css';
@@ -47,6 +47,8 @@
   --control-fill: #1c202b;
   --control-hover: #242936;
   --control-pressed: #171b24;
+  --glass-fill: #171b26b8;
+  --glass-selected-fill: #353c4bb3;
   --surface-keyline: #080a10;
   --surface-edge: #ffffff0f;
   --surface-highlight: #ffffff26;

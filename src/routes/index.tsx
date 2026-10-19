@@ -1,134 +1,86 @@
 ﻿import { createFileRoute } from '@tanstack/react-router'
-import { useRef, useState } from 'react'
-import { ArrowUpRight, Shuffle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import { movieMetadata } from '@/lib/movies'
-import { MovieCard, movieFrameClassName } from '@/components/movie-card'
-import { cn } from '@/lib/utils'
-import { useMoviePicker } from '@/hooks/use-movie-picker'
-import tmdbLogo from '@/assets/tmdb.svg'
+import { useState } from 'react'
+import { Search, Shuffle } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { RandomPicker } from '@/components/random-picker'
+import { SimilarFinder } from '@/components/similar-finder'
+import { Credits } from '@/components/credits'
+import type { MediaType } from '@/lib/media'
 
 export const Route = createFileRoute('/')({ component: Home })
 
 function Home() {
-  const { movie, pending, error, pickAnother } = useMoviePicker()
-  const [detailsOpen, setDetailsOpen] = useState(false)
-  const detailsButton = useRef<HTMLButtonElement>(null)
-
+  const [mediaType, setMediaType] = useState<MediaType>('movie')
+  const [mode, setMode] = useState('random')
   return (
     <div className="relative isolate flex min-h-svh flex-col bg-(image:--canvas-gradient) before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:bg-(--texture) before:opacity-16 before:[mask:url('/dither.svg')_center/1440px_960px_repeat]">
-      <main className="grid flex-1 place-items-center px-5 py-6 sm:px-8 sm:py-12">
-        <div className="flex w-full max-w-205 min-w-0 flex-col items-center gap-6 sm:gap-7">
-          {movie ? (
-            <MovieCard
-              movie={movie}
-              detailsRef={detailsButton}
-              onDetails={() => setDetailsOpen(true)}
-            />
-          ) : (
-            <div
-              className={cn(
-                movieFrameClassName,
-                'items-center justify-center text-muted-foreground',
-              )}
-              aria-busy={pending}
-            >
-              <output>{pending ? 'Finding a film…' : 'No film loaded'}</output>
-            </div>
-          )}
-          <div className="flex max-w-full flex-col items-center gap-4">
-            <Button
-              variant="surface"
-              className="h-auto min-h-14 min-w-52 max-w-full gap-3 py-3.25 pr-7 pl-6.5 text-lg leading-normal tracking-[-0.01em] whitespace-normal sm:min-h-15 sm:min-w-56 sm:py-3.5 sm:text-xl sm:leading-normal"
-              aria-disabled={pending}
-              onClick={() => {
-                if (!pending) void pickAnother()
-              }}
-            >
-              <Shuffle
-                className="size-5"
-                aria-hidden="true"
-                strokeWidth={1.75}
-              />
-              {pending
-                ? 'Finding a film…'
-                : error
-                  ? 'Try again'
-                  : 'Pick another'}
-            </Button>
-            {error && (
-              <p
-                className="max-w-[38ch] text-center text-pretty text-muted-foreground"
-                role="alert"
-              >
-                {error}
-              </p>
-            )}
-            <output className="sr-only">
-              {pending ? 'Loading a movie' : ''}
-            </output>
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-5 pt-7 pb-10 sm:px-8 sm:pt-12">
+        <Tabs
+          value={mode}
+          onValueChange={(value) => {
+            if (typeof value === 'string') setMode(value)
+          }}
+          className="flex-1 gap-9 sm:gap-12"
+        >
+          <div className="mx-auto flex w-full max-w-240 flex-wrap items-center justify-center gap-x-8 gap-y-4 sm:justify-between">
+            <TabsList aria-label="Discover titles">
+              <TabsTrigger value="random">
+                <Shuffle
+                  className="size-4"
+                  aria-hidden="true"
+                  strokeWidth={1.75}
+                />
+                Random
+              </TabsTrigger>
+              <TabsTrigger value="similar">
+                <Search
+                  className="size-4"
+                  aria-hidden="true"
+                  strokeWidth={1.75}
+                />
+                Find similar
+              </TabsTrigger>
+            </TabsList>
+            <fieldset className="flex max-w-full flex-wrap items-center gap-1 rounded-[26px] border border-white/8 bg-background/80 p-1 shadow-[inset_0_1px_0_var(--surface-edge)] backdrop-blur-xl [@media(prefers-reduced-transparency:reduce)]:bg-background [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none forced-colors:border-[ButtonText]">
+              <legend className="sr-only">What to watch</legend>
+              {(['movie', 'tv'] as const).map((type) => (
+                <label key={type} className="relative cursor-pointer">
+                  <input
+                    type="radio"
+                    name="media-type"
+                    value={type}
+                    checked={mediaType === type}
+                    onChange={() => setMediaType(type)}
+                    className="peer sr-only"
+                  />
+                  <span className="flex min-h-11 items-center rounded-full px-4 text-sm font-medium text-muted-foreground peer-checked:bg-muted/70 peer-checked:text-foreground peer-checked:shadow-[inset_0_0_0_1px_var(--surface-edge),inset_0_1px_0_var(--surface-highlight)] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring hover:text-foreground forced-colors:peer-checked:outline">
+                    {type === 'movie' ? 'Movies' : 'TV shows'}
+                  </span>
+                </label>
+              ))}
+            </fieldset>
           </div>
-        </div>
-        {movie && (
-          <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-            <DialogContent finalFocus={detailsButton}>
-              <DialogTitle>{movie.title}</DialogTitle>
-              <p className="text-sm text-muted-foreground">
-                {movieMetadata(movie).join(' / ')}
-              </p>
-              <DialogDescription>
-                {movie.synopsis || 'No synopsis available.'}
-              </DialogDescription>
-              <a
-                className="inline-flex min-h-11 w-fit items-center gap-1.5 text-base underline underline-offset-5"
-                href={`https://www.themoviedb.org/movie/${movie.id}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                View on TMDB <ArrowUpRight size={18} aria-hidden="true" />
-              </a>
-            </DialogContent>
-          </Dialog>
-        )}
+          <TabsContent
+            value="random"
+            keepMounted
+            className="content-center data-hidden:hidden"
+          >
+            <RandomPicker
+              key={mediaType}
+              mediaType={mediaType}
+              active={mode === 'random'}
+            />
+          </TabsContent>
+          <TabsContent
+            value="similar"
+            keepMounted
+            className="pt-4 data-hidden:hidden sm:pt-8"
+          >
+            <SimilarFinder key={mediaType} mediaType={mediaType} />
+          </TabsContent>
+        </Tabs>
       </main>
-      <footer aria-label="Credits" className="px-5 pb-5 text-center">
-        <Dialog>
-          <DialogTrigger className="min-h-11 rounded-sm px-2 text-[13px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-4 hover:text-foreground">
-            Film data from TMDB
-          </DialogTrigger>
-          <DialogContent>
-            <DialogTitle>Film data</DialogTitle>
-            <DialogDescription>
-              Movie information and artwork are supplied by{' '}
-              <a href="https://www.themoviedb.org">The Movie Database (TMDB)</a>
-              .
-            </DialogDescription>
-            <a
-              href="https://www.themoviedb.org"
-              className="flex min-h-11 w-fit items-center rounded-sm"
-            >
-              <img
-                src={tmdbLogo}
-                alt="TMDB"
-                width={96}
-                height={13}
-                className="h-auto w-24"
-              />
-            </a>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              This application uses TMDB and the TMDB APIs but is not endorsed,
-              certified, or otherwise approved by TMDB.
-            </p>
-          </DialogContent>
-        </Dialog>
-      </footer>
+      <Credits />
     </div>
   )
 }
