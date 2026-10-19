@@ -115,6 +115,7 @@ export const en = {
     timeout: 'TMDB took too long to respond. Try again.',
   },
   invalidSelection: 'Invalid selection.',
+  tooManyRequests: 'Too many requests. Try again in a minute.',
   notFound: 'Not found.',
   unreadableData: 'Title data could not be read. Try again.',
 }

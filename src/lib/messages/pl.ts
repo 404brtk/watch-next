@@ -123,6 +123,7 @@ export const pl: typeof en = {
     timeout: 'TMDB odpowiada zbyt długo. Spróbuj ponownie.',
   },
   invalidSelection: 'Nieprawidłowy wybór.',
+  tooManyRequests: 'Zbyt wiele żądań. Spróbuj ponownie za minutę.',
   notFound: 'Nie znaleziono.',
   unreadableData: 'Nie udało się odczytać danych tytułu. Spróbuj ponownie.',
 }

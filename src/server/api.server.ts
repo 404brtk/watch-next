@@ -15,7 +15,7 @@ import {
   requestLanguage,
 } from '../lib/i18n'
 
-type ApiEnv = { Bindings: { TMDB_READ_ACCESS_TOKEN?: string } }
+type ApiEnv = { Bindings: typeof import('cloudflare:workers').env }
 export const api = new Hono<ApiEnv>()
 api.use('/api/*', async (context, next) => {
   context.header('Cache-Control', 'no-store')
@@ -25,6 +25,16 @@ api.use('/api/*', async (context, next) => {
       { error: messages[requestLanguage(context.req.raw)].invalidSelection },
       400,
     )
+  const { success } = await context.env.API_RATE_LIMITER.limit({
+    key: context.req.header('CF-Connecting-IP') ?? 'unknown',
+  })
+  if (!success) {
+    context.header('Retry-After', '60')
+    return context.json(
+      { error: messages[apiLanguage(context)].tooManyRequests },
+      429,
+    )
+  }
   await next()
 })
 

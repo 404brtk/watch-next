@@ -4,5 +4,5 @@
   "categories": {
     "correctness": "error"
   },
-  "ignorePatterns": ["src/routeTree.gen.ts"]
+  "ignorePatterns": ["src/routeTree.gen.ts", "worker-configuration.d.ts"]
 }
