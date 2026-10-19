@@ -254,7 +254,7 @@ export function DiscoveryFilters({
     value.maxRuntime !== null ||
     value.minRating > 0
   return (
-    <fieldset className="grid w-full min-w-0 max-w-80 items-start gap-2.5 md:max-w-190 md:grid-cols-[minmax(0,1fr)_auto] md:gap-x-3">
+    <fieldset className="grid w-full min-w-0 max-w-80 items-start gap-2.5 md:max-w-none md:grid-cols-[minmax(0,1fr)_auto] md:gap-x-3">
       <legend className="sr-only">{t.filters}</legend>
       <div
         className={`grid grid-cols-2 gap-2.5 ${movies ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}
