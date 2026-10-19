@@ -228,6 +228,7 @@ export function SimilarFinder({ mediaType }: { mediaType: MediaType }) {
         )}
       </div>
       <TitleDetails
+        loadDetails
         title={details}
         onClose={() => setDetails(null)}
         returnFocus={detailsButton}

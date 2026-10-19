@@ -83,6 +83,14 @@ export function fetchWatchAvailability(
   )
 }
 
+export function fetchTitleDetails(
+  mediaType: MediaType,
+  id: number,
+  signal: AbortSignal,
+) {
+  return request(`/api/${mediaType}/details?id=${id}`, MediaSchema, signal)
+}
+
 export function fetchTitles(
   mediaType: MediaType,
   selection: { query: string } | { id: number },

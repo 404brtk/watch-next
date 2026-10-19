@@ -1,7 +1,7 @@
 ﻿import { Effect, Schema } from 'effect'
 import { Hono } from 'hono'
 import type { Context } from 'hono'
-import { findTitles, pickTitle } from './tmdb.server'
+import { findTitles, pickTitle, titleDetails } from './tmdb.server'
 import { TmdbError } from './tmdb-client.server'
 import type { MediaPage, MediaTitle } from '../lib/media'
 import { CountryCodeSchema, DiscoveryFiltersSchema } from '../lib/discovery'
@@ -50,7 +50,14 @@ api.get('/api/:mediaType/:action', async (context) => {
   const { mediaType, action } = context.req.param()
   if (
     (mediaType !== 'movie' && mediaType !== 'tv') ||
-    !['pick', 'search', 'recommendations', 'options', 'watch'].includes(action)
+    ![
+      'pick',
+      'search',
+      'recommendations',
+      'options',
+      'watch',
+      'details',
+    ].includes(action)
   ) {
     return context.json({ error: 'Not found.' }, 404)
   }
@@ -78,7 +85,7 @@ api.get('/api/:mediaType/:action', async (context) => {
     page < 1 ||
     page > 500 ||
     (action === 'search' && (!query || query.length > 200)) ||
-    (['recommendations', 'watch'].includes(action) &&
+    (['recommendations', 'watch', 'details'].includes(action) &&
       (!Number.isSafeInteger(id) || id <= 0))
   )
     return context.json({ error: 'Invalid selection.' }, 400)
@@ -98,12 +105,14 @@ api.get('/api/:mediaType/:action', async (context) => {
         ? pickTitle(token, mediaType, ids, filters, country)
         : action === 'options'
           ? discoveryOptions(token, mediaType, country)
-          : findTitles(
-              token,
-              mediaType,
-              page,
-              action === 'search' ? { query } : { id },
-            )
+          : action === 'details'
+            ? titleDetails(token, mediaType, id)
+            : findTitles(
+                token,
+                mediaType,
+                page,
+                action === 'search' ? { query } : { id },
+              )
 
     return operation
   })

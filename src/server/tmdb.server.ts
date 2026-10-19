@@ -17,6 +17,7 @@ const RawTitleSchema = Schema.Struct({
   first_air_date: Schema.optional(Schema.String),
   runtime: Schema.optional(Schema.NullOr(Schema.Number)),
   genres: Schema.optional(Schema.Array(Schema.Struct({ name: Schema.String }))),
+  genre_ids: Schema.optional(Schema.Array(PositiveInteger)),
   backdrop_path: Schema.NullOr(Schema.String),
   poster_path: Schema.NullOr(Schema.String),
   overview: Schema.NullOr(Schema.String),
@@ -41,6 +42,7 @@ function normalize(
   raw: typeof RawTitleSchema.Type,
   mediaType: MediaType,
   imageBase: string,
+  genres: readonly { id: number; name: string }[] = [],
 ) {
   return Effect.gen(function* () {
     const title = mediaType === 'movie' ? raw.title : raw.name
@@ -65,7 +67,12 @@ function normalize(
         mediaType === 'movie' && raw.runtime && raw.runtime > 0
           ? raw.runtime
           : null,
-      genres: raw.genres?.map((genre) => genre.name) ?? [],
+      genres:
+        raw.genres?.map((genre) => genre.name) ??
+        (raw.genre_ids ?? []).flatMap((id) => {
+          const genre = genres.find((item) => item.id === id)
+          return genre ? [genre.name] : []
+        }),
       backdrop: raw.backdrop_path
         ? `${imageBase}w1280${raw.backdrop_path}`
         : null,
@@ -73,6 +80,20 @@ function normalize(
       synopsis: raw.overview?.trim() || '',
       rating: raw.vote_count > 0 ? raw.vote_average : null,
     } satisfies MediaTitle
+  })
+}
+
+export function titleDetails(token: string, mediaType: MediaType, id: number) {
+  return Effect.gen(function* () {
+    const details = yield* request(
+      token,
+      `/${mediaType}/${id}?language=en-US`,
+      RawTitleSchema,
+    )
+    if (details.adult || details.id !== id)
+      return yield* new TmdbError({ reason: 'invalid-response' })
+    const images = yield* imageConfiguration(token)
+    return yield* normalize(details, mediaType, images.secure_base_url)
   })
 }
 
@@ -143,15 +164,7 @@ export function pickTitle(
       .find((titles) => titles.length > 0)
     if (!candidates) return yield* new TmdbError({ reason: 'empty' })
     const selected = candidates[Math.floor(Math.random() * candidates.length)]
-    const details = yield* request(
-      token,
-      `/${mediaType}/${selected.id}?language=en-US`,
-      RawTitleSchema,
-    )
-    if (details.adult || details.id !== selected.id)
-      return yield* new TmdbError({ reason: 'invalid-response' })
-    const images = yield* imageConfiguration(token)
-    return yield* normalize(details, mediaType, images.secure_base_url)
+    return yield* titleDetails(token, mediaType, selected.id)
   })
 }
 
@@ -175,13 +188,16 @@ export function findTitles(
     const response = yield* request(token, `${path}?${params}`, PageSchema)
     if (response.page !== page)
       return yield* new TmdbError({ reason: 'invalid-response' })
+    const genres = response.results.some((title) => title.genre_ids?.length)
+      ? (yield* discoveryOptions(token, mediaType, null)).genres
+      : []
     const images = yield* imageConfiguration(token)
     const results = yield* Effect.forEach(
       response.results.filter(
         (title) =>
           !title.adult && (!('id' in selection) || title.id !== selection.id),
       ),
-      (title) => normalize(title, mediaType, images.secure_base_url),
+      (title) => normalize(title, mediaType, images.secure_base_url, genres),
     )
     return {
       results,

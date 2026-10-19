@@ -57,6 +57,7 @@ export function TitleGrid({
             <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground tabular-nums">
               {title.year && <span>{title.year}</span>}
               <MediaRating rating={title.rating} />
+              {title.genres[0] && <span>{title.genres[0]}</span>}
             </p>
           </button>
         </li>
